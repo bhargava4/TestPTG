@@ -41,6 +41,24 @@ public class User {
 
 	private String token;
 
+	public User() {
+		super();
+	}
+	
+	public User(User user) {
+		this.id = user.getId();
+		this.userId = user.getUserId();
+		this.name = user.getName();
+		this.emailId = user.getEmailId();
+		this.phoneNum = user.getPhoneNum();
+		this.password = user.getPassword();
+		this.authenticated = user.getAuthenticated();
+		this.approver = user.getApprover();
+		this.createDate = user.getCreateDate();
+		this.updateDate = user.getUpdateDate();
+		this.token = user.getToken();
+	}
+
 	public String getId() {
 		return id;
 	}

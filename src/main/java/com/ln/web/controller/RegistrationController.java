@@ -1,5 +1,6 @@
 package com.ln.web.controller;
 
+import java.security.Principal;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
@@ -126,7 +127,7 @@ public class RegistrationController {
 		return ResponseEntity.ok("User verified successfully");
 	}
 
-	@RequestMapping(value = "/login", method = RequestMethod.POST)
+	/*@RequestMapping(value = "/login", method = RequestMethod.POST)
 	public ResponseEntity verifyLoginUser(@Valid @RequestBody LoginUser user) throws Exception {
 
 		user = registrationService.getUserByIdPwd(user.getUserId(),
@@ -135,6 +136,6 @@ public class RegistrationController {
 			return ResponseEntity.badRequest().body("Invalid UserId or Password");
 
 		return ResponseEntity.ok(user);
-	}
+	}*/
 
 }
