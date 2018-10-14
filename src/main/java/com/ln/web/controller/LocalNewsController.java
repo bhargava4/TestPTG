@@ -61,6 +61,12 @@ public class LocalNewsController {
 		return ResponseEntity.ok().body(list);
 	}
 
+	@RequestMapping(value = "/user/draft-news/{newsId}", method = RequestMethod.GET)
+	public ResponseEntity deleteDraftNews(@PathVariable String newsId) {
+		localNewsService.removeDraftNews(newsId);
+		return ResponseEntity.ok("Deleted successfully");
+	}
+	
 	@RequestMapping(value = "/user/publish-news", method = RequestMethod.POST)
 	public ResponseEntity publishNews(@Valid @RequestPart(name = "newsDetails") PostNews news,
 			@RequestPart(name = "newsImage", required = false) MultipartFile newsImage) throws IOException {
