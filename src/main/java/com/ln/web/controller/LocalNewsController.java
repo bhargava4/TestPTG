@@ -61,7 +61,7 @@ public class LocalNewsController {
 		return ResponseEntity.ok().body(list);
 	}
 
-	@RequestMapping(value = "/user/draft-news/{newsId}", method = RequestMethod.GET)
+	@RequestMapping(value = "/user/draft-news/{newsId}", method = RequestMethod.DELETE)
 	public ResponseEntity deleteDraftNews(@PathVariable String newsId) {
 		localNewsService.removeDraftNews(newsId);
 		return ResponseEntity.ok("Deleted successfully");
