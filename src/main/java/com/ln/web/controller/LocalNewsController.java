@@ -10,6 +10,7 @@ import javax.validation.Valid;
 import org.apache.commons.lang3.StringUtils;
 import org.bson.types.ObjectId;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -22,6 +23,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import com.ln.domain.PostNews;
 import com.ln.domain.PublicNews;
+import com.ln.domain.ReturnResponse;
 import com.ln.domain.ReviewNews;
 import com.ln.entity.DraftNews;
 import com.ln.entity.PublishNews;
@@ -34,41 +36,48 @@ public class LocalNewsController {
 	private LocalNewsService localNewsService;
 
 	@RequestMapping(value = "/user/draft-news", method = RequestMethod.POST, consumes = "application/json")
-	public ResponseEntity saveDraftNews(@Valid @RequestBody PostNews news) {
+	public ReturnResponse saveDraftNews(@Valid @RequestBody PostNews news) {
 		localNewsService.saveDraftNews(news);
-		return ResponseEntity.ok("Post saved successfully");
+		return ReturnResponse.getHttpStatusResponse("Post saved successfully", HttpStatus.OK, null);
+		//return ResponseEntity.ok("Post saved successfully");
 	}
 
 	@RequestMapping(value = "/user/draft-news", method = RequestMethod.PUT, consumes = "application/json")
-	public ResponseEntity updateDraftNews(@Valid @RequestBody PostNews news) {
+	public ReturnResponse updateDraftNews(@Valid @RequestBody PostNews news) {
 
 		if (StringUtils.isBlank(news.getId()))
-			ResponseEntity.badRequest().body("Id is mandatory to update");
+			return ReturnResponse.getHttpStatusResponse("Id is mandatory to update", HttpStatus.BAD_REQUEST, null);
+			//ResponseEntity.badRequest().body("Id is mandatory to update");
 
 		DraftNews draftNewsDb = localNewsService.getDraftNews(news.getId());
 		if (draftNewsDb == null)
-			ResponseEntity.badRequest().body("News id does not exist to update");
+			return ReturnResponse.getHttpStatusResponse("News id does not exist to update", HttpStatus.BAD_REQUEST, null);
+			//ResponseEntity.badRequest().body("News id does not exist to update");
 
 		localNewsService.updateDraftNews(news);
-		return ResponseEntity.ok("Post updated successfully");
+		return ReturnResponse.getHttpStatusResponse("Post updated successfully", HttpStatus.OK, null);
+		//return ResponseEntity.ok("Post updated successfully");
 	}
 
 	@RequestMapping(value = "/user/draft-news/{editorId}", method = RequestMethod.GET)
-	public ResponseEntity getDraftNews(@PathVariable String editorId) {
+	public ReturnResponse getDraftNews(@PathVariable String editorId) {
 		List<PostNews> list = localNewsService.getDraftNewsByEditor(editorId);
 		if (list == null || list.size() == 0)
-			return ResponseEntity.badRequest().body("No records");
-		return ResponseEntity.ok().body(list);
+			return ReturnResponse.getHttpStatusResponse("No records", HttpStatus.BAD_REQUEST, null);
+			//return ResponseEntity.badRequest().body("No records");
+		//return ResponseEntity.ok().body(list);
+		return ReturnResponse.getHttpStatusResponse("draft news retrieved",HttpStatus.OK, list);
 	}
 
 	@RequestMapping(value = "/user/draft-news/{newsId}", method = RequestMethod.DELETE)
-	public ResponseEntity deleteDraftNews(@PathVariable String newsId) {
+	public ReturnResponse deleteDraftNews(@PathVariable String newsId) {
 		localNewsService.removeDraftNews(newsId);
-		return ResponseEntity.ok("Deleted successfully");
+		return ReturnResponse.getHttpStatusResponse("Deleted successfully", HttpStatus.BAD_REQUEST, null);
+		//return ResponseEntity.ok("Deleted successfully");
 	}
 	
 	@RequestMapping(value = "/user/publish-news", method = RequestMethod.POST)
-	public ResponseEntity publishNews(@Valid @RequestPart(name = "newsDetails") PostNews news,
+	public ReturnResponse publishNews(@Valid @RequestPart(name = "newsDetails") PostNews news,
 			@RequestPart(name = "newsImage", required = false) MultipartFile newsImage) throws IOException {
 
 		if (StringUtils.isNotBlank(news.getId()))
@@ -78,20 +87,22 @@ public class LocalNewsController {
 
 		if (newsImage != null)
 			localNewsService.saveImage(newsId, newsImage.getInputStream());
-
-		return ResponseEntity.ok("Post published for review successfully");
+		return ReturnResponse.getHttpStatusResponse("Post published for review successfully", HttpStatus.OK, null);
+		//return ResponseEntity.ok("Post published for review successfully");
 	}
 
 	@RequestMapping(value = "/user/publish-news/{editorId}", method = RequestMethod.GET)
-	public ResponseEntity getEditorPublishNews(@PathVariable String editorId) {
+	public ReturnResponse getEditorPublishNews(@PathVariable String editorId) {
 		List<ReviewNews> list = localNewsService.getEditorPublishNews(editorId);
 		if (list == null || list.size() == 0)
-			return ResponseEntity.badRequest().body("No records");
-		return ResponseEntity.ok().body(list);
+			//return ResponseEntity.badRequest().body("No records");
+		return ReturnResponse.getHttpStatusResponse("No records", HttpStatus.BAD_REQUEST, null);
+		//return ResponseEntity.ok().body(list);
+		return ReturnResponse.getHttpStatusResponse("published news retrieved successfully", HttpStatus.OK, list);
 	}
 
 	@RequestMapping(value = "/admin/review-news", method = RequestMethod.GET)
-	public ResponseEntity getReviewNews(@RequestParam(required = false) String editorId,
+	public ReturnResponse getReviewNews(@RequestParam(required = false) String editorId,
 			@RequestParam(required = false) String newsDate, @RequestParam(required = false) String locations) {
 		List<ObjectId> locList = null;
 		if (StringUtils.isNotBlank(locations)) {
@@ -99,17 +110,20 @@ public class LocalNewsController {
 		}
 		List<ReviewNews> list = localNewsService.getReviewNews(editorId, newsDate, locList);
 		if (list == null || list.size() == 0)
-			return ResponseEntity.badRequest().body("No records");
-		return ResponseEntity.ok().body(list);
+			return ReturnResponse.getHttpStatusResponse("No records", HttpStatus.BAD_REQUEST, null);
+		//	return ResponseEntity.badRequest().body("No records");
+		//return ResponseEntity.ok().body(list);
+		return ReturnResponse.getHttpStatusResponse("reviewed news ", HttpStatus.OK, list);
 	}
 
 	@RequestMapping(value = "/admin/review-news", method = RequestMethod.PUT)
-	public ResponseEntity reviewNews(@Valid @RequestPart(name = "newsDetails") ReviewNews news,
+	public ReturnResponse reviewNews(@Valid @RequestPart(name = "newsDetails") ReviewNews news,
 			@RequestPart(name = "newsImage", required = false) MultipartFile newsImage) throws IOException {
 
 		PublishNews publishNewsDb = localNewsService.getPublishNews(news.getId());
 		if (publishNewsDb == null)
-			ResponseEntity.badRequest().body("News id does not exist to update");
+			return ReturnResponse.getHttpStatusResponse("News id does not exist to update", HttpStatus.BAD_REQUEST, null);
+			//ResponseEntity.badRequest().body("News id does not exist to update");
 
 		// validate if reviewer has permissions
 
@@ -119,12 +133,12 @@ public class LocalNewsController {
 			localNewsService.removeImage(news.getId());
 			localNewsService.saveImage(news.getId(), newsImage.getInputStream());
 		}
-
-		return ResponseEntity.ok("Post reviewed successfully");
+		return ReturnResponse.getHttpStatusResponse("Post reviewed successfully", HttpStatus.OK, null);
+		//return ResponseEntity.ok("Post reviewed successfully");
 	}
 
 	@RequestMapping(value = "/public/news", method = RequestMethod.GET)
-	public ResponseEntity getPublicNews(@RequestParam(required = false) String newsId,
+	public ReturnResponse getPublicNews(@RequestParam(required = false) String newsId,
 			@RequestParam(required = false) String locations) {
 		List<ObjectId> locList = null;
 		if (StringUtils.isNotBlank(locations)) {
@@ -132,8 +146,10 @@ public class LocalNewsController {
 		}
 		List<PublicNews> list = localNewsService.getPublicNews(newsId, locList);
 		if (list == null || list.size() == 0)
-			return ResponseEntity.badRequest().body("News does not exist");
-		return ResponseEntity.ok().body(list);
+			return ReturnResponse.getHttpStatusResponse("News does not exist", HttpStatus.BAD_REQUEST, null);
+			//return ResponseEntity.badRequest().body("News does not exist");
+		//return ResponseEntity.ok().body(list);
+		return ReturnResponse.getHttpStatusResponse("pubic news reviewed successfully", HttpStatus.OK, list);
 	}
 
 }

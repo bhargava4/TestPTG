@@ -10,6 +10,7 @@ import javax.validation.Valid;
 
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
@@ -22,6 +23,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.ln.domain.LoginUser;
 import com.ln.domain.RegistrationUser;
+import com.ln.domain.ReturnResponse;
 import com.ln.entity.User;
 import com.ln.service.RecaptchaService;
 import com.ln.service.RegistrationService;
@@ -39,7 +41,7 @@ public class RegistrationController {
 	private JavaMailSender mailSender;
 
 	@RequestMapping(value = "/validate-user", method = RequestMethod.GET)
-	public ResponseEntity registrationStatus(@RequestParam(required = false) String userId,
+	public ReturnResponse registrationStatus(@RequestParam(required = false) String userId,
 			@RequestParam(required = false) String emailId, @RequestParam(required = false) String phoneNum) {
 		StringBuffer errorMsg = new StringBuffer();
 		User user = null;
@@ -59,28 +61,32 @@ public class RegistrationController {
 				errorMsg.append("Phone number already exists.");
 		}
 		if (StringUtils.isBlank(errorMsg))
-			return ResponseEntity.ok().build();
-		return ResponseEntity.badRequest().body(errorMsg);
+			return ReturnResponse.getHttpStatusResponse("Registration Successfull", HttpStatus.OK, null);
+			//return ResponseEntity.ok().build();
+			return ReturnResponse.getHttpStatusResponse(errorMsg.toString(), HttpStatus.BAD_REQUEST, null);
+		//return ResponseEntity.badRequest().body(errorMsg);
 	}
 
 	@RequestMapping(value = "/signup", method = RequestMethod.POST, consumes = "application/json")
-	public ResponseEntity registerUser(@Valid @RequestBody RegistrationUser lUser, HttpServletRequest request) {
+	public ReturnResponse registerUser(@Valid @RequestBody RegistrationUser lUser, HttpServletRequest request) {
 
 		// Verify recaptcha
 		String captchaVerifyMessage = recaptchaService.verifyRecaptcha(request.getRemoteAddr(),
 				lUser.getRecaptchaResp());
 		if (StringUtils.isNotEmpty(captchaVerifyMessage)) {
-			Map<String, Object> response = new HashMap<>();
+			/*Map<String, Object> response = new HashMap<>();
 			response.put("error", "Captcha error");
-			response.put("message", captchaVerifyMessage);
-			return ResponseEntity.badRequest().body(response);
+			response.put("message", captchaVerifyMessage);*/
+			return ReturnResponse.getHttpStatusResponse(captchaVerifyMessage, HttpStatus.BAD_REQUEST,null);
+			//return ResponseEntity.badRequest().body(response);
 		}
 		// Verify recaptcha done
 
 		// varify user exists with userid
 		User dbUser = registrationService.findUserById(lUser.getUserId());
 		if (dbUser != null)
-			return ResponseEntity.badRequest().body("UserId already exists");
+			return ReturnResponse.getHttpStatusResponse("UserId already exists", HttpStatus.BAD_REQUEST, null);
+			//return ResponseEntity.badRequest().body("UserId already exists");
 
 		// Map User object
 		User user = new User();
@@ -95,8 +101,8 @@ public class RegistrationController {
 
 		// confirmation email logic
 		// publishVerificationEmail(user, request.getContextPath());
-
-		return ResponseEntity.ok("User registered successfully.");
+		return ReturnResponse.getHttpStatusResponse("User registered successfully.", HttpStatus.OK, null);
+		//return ResponseEntity.ok("User registered successfully.");
 	}
 
 	private void publishVerificationEmail(User user, String url) {
@@ -116,15 +122,16 @@ public class RegistrationController {
 	}
 
 	@RequestMapping(value = "/verify-registration", method = RequestMethod.GET)
-	public ResponseEntity verifyRegistration(@RequestParam String token) throws Exception {
+	public ReturnResponse verifyRegistration(@RequestParam String token) throws Exception {
 
 		User user = registrationService.getUserByToken(token);
 		if (user == null)
-			return ResponseEntity.badRequest().body("User does not exist or user already verfied");
+			return ReturnResponse.getHttpStatusResponse("User does not exist or user already verfied", HttpStatus.BAD_REQUEST, null);
+			//return ResponseEntity.badRequest().body("User does not exist or user already verfied");
 
 		registrationService.updateRegTokenAndStatus(user.getUserId(), null, true);
-
-		return ResponseEntity.ok("User verified successfully");
+		return ReturnResponse.getHttpStatusResponse("User verified successfully", HttpStatus.OK,null);
+		//return ResponseEntity.ok("User verified successfully");
 	}
 
 	/*@RequestMapping(value = "/login", method = RequestMethod.POST)

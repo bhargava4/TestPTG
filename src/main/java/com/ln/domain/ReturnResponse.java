@@ -34,7 +34,7 @@ public class ReturnResponse<T> implements Serializable {
 	}
 
 public static <T> ReturnResponse<T> getHttpStatusResponse(String message,
-		HttpStatus status, T res, String errorCode) {
+		HttpStatus status, T res) {
 	ReturnResponse<T> returnResponse = new ReturnResponse<T>();
 	returnResponse.setStatusCode(String.valueOf(status.value()));
 	returnResponse.setStatusText(status.getReasonPhrase());
