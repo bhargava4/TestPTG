@@ -39,7 +39,6 @@ public static <T> ReturnResponse<T> getHttpStatusResponse(String message,
 	returnResponse.setStatusCode(String.valueOf(status.value()));
 	returnResponse.setStatusText(status.getReasonPhrase());
 	returnResponse.setStatusMessage(message);
-}
 	return returnResponse;
 }
 }
