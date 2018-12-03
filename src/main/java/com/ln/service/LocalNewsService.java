@@ -2,19 +2,24 @@ package com.ln.service;
 
 import java.io.InputStream;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
+import java.util.stream.Collectors;
 
+import org.apache.commons.lang3.StringUtils;
 import org.bson.types.ObjectId;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.util.CollectionUtils;
 
+import com.ln.dao.ChannelDao;
 import com.ln.dao.LocalNewsDao;
+import com.ln.domain.NewsMediaAgg;
 import com.ln.domain.NewsUserAgg;
 import com.ln.domain.PostNews;
 import com.ln.domain.PublicNews;
 import com.ln.domain.ReviewNews;
+import com.ln.entity.Channel;
 import com.ln.entity.DraftNews;
 import com.ln.entity.PublishNews;
 
@@ -23,6 +28,9 @@ public class LocalNewsService {
 
 	@Autowired
 	private LocalNewsDao localNewsDao;
+	
+	@Autowired
+	private ChannelDao channelDao;
 
 	public void saveDraftNews(PostNews news) {
 		DraftNews draftNews = mapDraftNews(news);
@@ -33,10 +41,13 @@ public class LocalNewsService {
 		DraftNews draftNews = new DraftNews();
 		draftNews.setTitle(news.getTitle());
 		draftNews.setDescription(news.getDescription());
-		draftNews.setLocation(Arrays.stream(news.getLocation()).map(loc -> new ObjectId(loc)).toArray(ObjectId[]::new));
+		draftNews.setLocation(news.getLocation());
 		draftNews.setNewsDate(news.getNewsDate());
 		draftNews.setRefLink(news.getRefLink());
-		draftNews.setEditorId(news.getEditorId());
+		draftNews.setEditorId(new ObjectId(news.getEditorId()));
+		draftNews.setChannel(new ObjectId(news.getChannel()));
+		draftNews.setCurrentLocation(news.getCurrentLocation());
+		draftNews.setLanguage(news.getLanguage());
 		return draftNews;
 	}
 
@@ -52,7 +63,7 @@ public class LocalNewsService {
 	}
 
 	public List<PostNews> getDraftNewsByEditor(String editorId) {
-		List<NewsUserAgg> listDb = localNewsDao.getDraftNewsByEditor(editorId);
+		List<NewsUserAgg> listDb = localNewsDao.getDraftNewsByEditor(new ObjectId(editorId));
 		List<PostNews> retList = new ArrayList<>();
 		if (listDb != null)
 			listDb.stream().forEach(nua -> {
@@ -64,7 +75,10 @@ public class LocalNewsService {
 				pn.setNewsDate(nua.getNewsDate());
 				pn.setRefLink(nua.getRefLink());
 				pn.setTitle(nua.getTitle());
-				pn.setLocationData(nua.getLocationData());
+				pn.setChannelData(nua.getChannelData());
+				pn.setChannel(nua.getChannel());
+				pn.setCurrentLocation(nua.getCurrentLocation());
+				pn.setLanguage(nua.getLanguage());
 				retList.add(pn);
 			});
 		return retList;
@@ -82,11 +96,14 @@ public class LocalNewsService {
 	private PublishNews mapPublishNews(PostNews news) {
 		PublishNews publishNews = new PublishNews();
 		publishNews.setDescription(news.getDescription());
-		publishNews.setEditorId(news.getEditorId());
-		publishNews.setLocation(Arrays.stream(news.getLocation()).map(loc -> new ObjectId(loc)).toArray(ObjectId[]::new));
+		publishNews.setEditorId(new ObjectId(news.getEditorId()));
+		publishNews.setLocation(news.getLocation());
 		publishNews.setNewsDate(news.getNewsDate());
 		publishNews.setRefLink(news.getRefLink());
 		publishNews.setTitle(news.getTitle());
+		publishNews.setChannel(new ObjectId(news.getChannel()));
+		publishNews.setCurrentLocation(news.getCurrentLocation());
+		publishNews.setLanguage(news.getLanguage());
 		return publishNews;
 	}
 
@@ -98,30 +115,24 @@ public class LocalNewsService {
 		PublishNews publishNews = mapPublishNews(news);
 		publishNews.setId(news.getId());
 		publishNews.setReviewDate(new Date());
-		publishNews.setReviewerId(news.getReviewerId());
+		publishNews.setReviewerId(new ObjectId(news.getReviewerId()));
 		publishNews.setStatus(news.getStatus());
 		publishNews.setUpdateDate(new Date());
 		localNewsDao.updatePublishNews(publishNews);
 	}
 
-	public List<ReviewNews> getReviewNews(String editorId, String newsDate, List<ObjectId> locList) {
-		List<NewsUserAgg> listDb = localNewsDao.getReviewNews(editorId, newsDate, locList);
+	public List<ReviewNews> getReviewNews(String editorId, String newsDate, List<ObjectId> channels, String reviewerId, boolean adminInd) {
+		ObjectId edtrId = StringUtils.isNotBlank(editorId) ? new ObjectId(editorId) : null;
+		if(CollectionUtils.isEmpty(channels)) {
+			List<Channel> chnls = channelDao.getChannelsForReview(new ObjectId(reviewerId), adminInd);
+			channels = chnls.stream().map(chnl -> new ObjectId(chnl.getId())).collect(Collectors.toList());
+		}
+		List<NewsUserAgg> listDb = localNewsDao.getReviewNews(edtrId, newsDate, channels);
 		List<ReviewNews> list = new ArrayList<>();
 		if (listDb != null) {
 			listDb.parallelStream().forEach(nua -> {
-				ReviewNews rn = new ReviewNews();
-				rn.setId(nua.getId());
-				rn.setDescription(nua.getDescription());
-				rn.setEditorId(nua.getEditorId());
-				rn.setLocation(nua.getLocation());
-				rn.setNewsDate(nua.getNewsDate());
+				ReviewNews rn = mapReviewNews(nua);
 				rn.setPublishedBy(nua.getEditors().get(0).getName());
-				rn.setRefLink(nua.getRefLink());
-				rn.setStatus(nua.getStatus());
-				rn.setTitle(nua.getTitle());
-				rn.setImageFiles(nua.getImageFiles());
-				rn.setImageChunks(nua.getImageChunks());
-				rn.setLocationData(nua.getLocationData());
 				list.add(rn);
 			});
 		}
@@ -129,28 +140,35 @@ public class LocalNewsService {
 	}
 
 	public List<ReviewNews> getEditorPublishNews(String editorId) {
-		List<NewsUserAgg> listDb = localNewsDao.getEditorPublishNews(editorId);
+		List<NewsUserAgg> listDb = localNewsDao.getEditorPublishNews(new ObjectId(editorId));
 		List<ReviewNews> list = new ArrayList<>();
 		if (listDb != null) {
 			listDb.parallelStream().forEach(nua -> {
-				ReviewNews rn = new ReviewNews();
-				rn.setId(nua.getId());
-				rn.setDescription(nua.getDescription());
-				rn.setEditorId(nua.getEditorId());
-				rn.setLocation(nua.getLocation());
-				rn.setNewsDate(nua.getNewsDate());
-				rn.setRefLink(nua.getRefLink());
-				rn.setStatus(nua.getStatus());
-				rn.setTitle(nua.getTitle());
-				rn.setLocationData(nua.getLocationData());
-				list.add(rn);
+				list.add(mapReviewNews(nua));
 			});
 		}
 		return list;
 	}
 
-	public List<PublicNews> getPublicNews(String newsId, List<ObjectId> locList) {
-		List<NewsUserAgg> listDb = localNewsDao.getPublicNews(newsId, locList);
+	private ReviewNews mapReviewNews(NewsUserAgg nua) {
+		ReviewNews rn = new ReviewNews();
+		rn.setId(nua.getId());
+		rn.setDescription(nua.getDescription());
+		rn.setEditorId(nua.getEditorId());
+		rn.setLocation(nua.getLocation());
+		rn.setNewsDate(nua.getNewsDate());
+		rn.setRefLink(nua.getRefLink());
+		rn.setStatus(nua.getStatus());
+		rn.setTitle(nua.getTitle());
+		rn.setChannelData(nua.getChannelData());
+		rn.setChannel(nua.getChannel());
+		rn.setCurrentLocation(nua.getCurrentLocation());
+		rn.setLanguage(nua.getLanguage());
+		return rn;
+	}
+
+	public List<PublicNews> getPublicNews(String newsId, Object[] locations, List<String> languages, String channelId) {
+		List<NewsUserAgg> listDb = localNewsDao.getPublicNews(newsId, locations, languages, channelId);
 		List<PublicNews> list = new ArrayList<>();
 		if (listDb != null) {
 			listDb.parallelStream().forEach(nua -> {
@@ -165,9 +183,10 @@ public class LocalNewsService {
 				pn.setDislikesCount(nua.getDislikesCount());
 				pn.setLikesCount(nua.getLikesCount());
 				pn.setMylike(nua.getMyLike());
-				pn.setImageFiles(nua.getImageFiles());
-				pn.setImageChunks(nua.getImageChunks());
-				pn.setLocationData(nua.getLocationData());
+				pn.setChannelData(nua.getChannelData());
+				pn.setChannel(nua.getChannel());
+				pn.setCurrentLocation(nua.getCurrentLocation());
+				pn.setLanguage(nua.getLanguage());
 				list.add(pn);
 			});
 		}
@@ -180,6 +199,10 @@ public class LocalNewsService {
 
 	public void removeImage(String newsId) {
 		localNewsDao.removeImage(newsId);
+	}
+
+	public NewsMediaAgg getNewsMedia(String newsId) {
+		return localNewsDao.getNewsMedia(new ObjectId(newsId));
 	}
 
 }

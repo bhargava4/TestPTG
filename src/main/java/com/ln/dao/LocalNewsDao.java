@@ -1,5 +1,6 @@
 package com.ln.dao;
 
+import static org.springframework.data.mongodb.core.aggregation.Aggregation.geoNear;
 import static org.springframework.data.mongodb.core.aggregation.Aggregation.lookup;
 import static org.springframework.data.mongodb.core.aggregation.Aggregation.match;
 import static org.springframework.data.mongodb.core.aggregation.Aggregation.newAggregation;
@@ -12,14 +13,19 @@ import org.apache.commons.lang3.StringUtils;
 import org.bson.types.ObjectId;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Sort;
+import org.springframework.data.geo.Metrics;
+import org.springframework.data.geo.Point;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.aggregation.Aggregation;
 import org.springframework.data.mongodb.core.aggregation.AggregationResults;
 import org.springframework.data.mongodb.core.query.Criteria;
+import org.springframework.data.mongodb.core.query.NearQuery;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.stereotype.Repository;
 
+import com.ln.domain.Coordinates;
+import com.ln.domain.NewsMediaAgg;
 import com.ln.domain.NewsUserAgg;
 import com.ln.entity.DraftNews;
 import com.ln.entity.PublishNews;
@@ -51,6 +57,9 @@ public class LocalNewsDao {
 		update.set("newsDate", draftNews.getNewsDate());
 		update.set("editorId", draftNews.getEditorId());
 		update.set("updateDate", draftNews.getUpdateDate());
+		update.set("channel", draftNews.getChannel());
+		update.set("language", draftNews.getLanguage());
+		update.set("currentLocation", draftNews.getCurrentLocation());
 
 		mongoTemplate.updateFirst(query, update, DraftNews.class);
 	}
@@ -61,10 +70,10 @@ public class LocalNewsDao {
 		return mongoTemplate.findOne(query, DraftNews.class);
 	}
 
-	public List<NewsUserAgg> getDraftNewsByEditor(String editorId) {
+	public List<NewsUserAgg> getDraftNewsByEditor(ObjectId editorId) {
 
 		Aggregation agg = newAggregation(match(Criteria.where("editorId").is(editorId)),
-				lookup("locations", "location", "_id", "locationData"), sort(Sort.Direction.DESC, "updateDate"));
+				lookup("channels", "channel", "_id", "channelData"), sort(Sort.Direction.DESC, "updateDate"));
 
 		// Convert the aggregation result into a List
 		AggregationResults<NewsUserAgg> groupResults = mongoTemplate.aggregate(agg, DraftNews.class, NewsUserAgg.class);
@@ -105,24 +114,25 @@ public class LocalNewsDao {
 		update.set("reviewDate", publishNews.getReviewDate());
 		update.set("status", publishNews.getStatus());
 		update.set("updateDate", publishNews.getUpdateDate());
+		update.set("channel", publishNews.getChannel());
+		update.set("language", publishNews.getLanguage());
+		update.set("currentLocation", publishNews.getCurrentLocation());
 
 		mongoTemplate.updateFirst(query, update, PublishNews.class);
 	}
 
-	public List<NewsUserAgg> getReviewNews(String editorId, String newsDate, List<ObjectId> locList) {
+	public List<NewsUserAgg> getReviewNews(ObjectId editorId, String newsDate, List<ObjectId> channels) {
 
 		Criteria criteria = Criteria.where("status").is(null);
-		if (StringUtils.isNotBlank(editorId))
+		if (editorId != null)
 			criteria.and("editorId").is(editorId);
 		if (StringUtils.isNotBlank(newsDate))
 			criteria.and("newsDate").is(newsDate);
-		if (locList != null && locList.size() > 0)
-			criteria.and("location").elemMatch(new Criteria().in(locList));
+		if (channels != null && channels.size() > 0)
+			criteria.and("channel").in(channels);
 
-		Aggregation agg = newAggregation(match(criteria), lookup("fs.files", "_id", "_id", "imageFiles"),
-				lookup("fs.chunks", "imageFiles._id", "files_id", "imageChunks"),
-				lookup("user_details", "editorId", "userId", "editors"),
-				lookup("locations", "location", "_id", "locationData"), sort(Sort.Direction.DESC, "updateDate"));
+		Aggregation agg = newAggregation(match(criteria), lookup("user_details", "editorId", "_id", "editors"),
+				lookup("channels", "channel", "_id", "channelData"), sort(Sort.Direction.DESC, "updateDate"));
 
 		// Convert the aggregation result into a List
 		AggregationResults<NewsUserAgg> groupResults = mongoTemplate.aggregate(agg, PublishNews.class,
@@ -132,9 +142,9 @@ public class LocalNewsDao {
 		return result;
 	}
 
-	public List<NewsUserAgg> getEditorPublishNews(String editorId) {
+	public List<NewsUserAgg> getEditorPublishNews(ObjectId editorId) {
 		Aggregation agg = newAggregation(match(Criteria.where("editorId").is(editorId)),
-				lookup("locations", "location", "_id", "locationData"), sort(Sort.Direction.DESC, "updateDate"));
+				lookup("channels", "channel", "_id", "channelData"), sort(Sort.Direction.DESC, "updateDate"));
 
 		// Convert the aggregation result into a List
 		AggregationResults<NewsUserAgg> groupResults = mongoTemplate.aggregate(agg, PublishNews.class,
@@ -144,18 +154,31 @@ public class LocalNewsDao {
 		return result;
 	}
 
-	public List<NewsUserAgg> getPublicNews(String newsId, List<ObjectId> locList) {
+	public List<NewsUserAgg> getPublicNews(String newsId, Object[] locations, List<String> languages,
+			String channelId) {
 		Criteria criteria = Criteria.where("status").is("A");
 		if (StringUtils.isNotBlank(newsId))
-			criteria.and("id").is(newsId);
-		if (locList != null && locList.size() > 0)
-			criteria.and("location").elemMatch(new Criteria().in(locList));
-
-		Aggregation agg = newAggregation(match(criteria), lookup("fs.files", "_id", "_id", "imageFiles"),
-				lookup("fs.chunks", "imageFiles._id", "files_id", "imageChunks"),
-				lookup("user_details", "editorId", "userId", "editors"),
-				lookup("locations", "location", "_id", "locationData"), sort(Sort.Direction.DESC, "updateDate"));
-
+			criteria.and("id").is(new ObjectId(newsId));
+		if (StringUtils.isNotBlank(channelId))
+			criteria.and("channel").is(new ObjectId(channelId));
+		/*
+		 * if (locations != null && locations.length > 0) { List<NearQuery>
+		 * critLocList = new ArrayList<>(); for(int i=0;
+		 * i<locations.length;i++){ Coordinates coord =
+		 * (Coordinates)locations[i]; NearQuery nQuery = NearQuery.near(new
+		 * Point(coord.getLng(), coord.getLat()),
+		 * Metrics.KILOMETERS).maxDistance(5); critLocList.add(nQuery); }
+		 * criteria.and("location").elemMatch(new Criteria().in(critLocList)); }
+		 */
+		if (languages != null && languages.size() > 0)
+			criteria.and("language").in(languages);
+		Coordinates coord = (Coordinates) locations[0];
+		Aggregation agg = newAggregation(
+				geoNear(NearQuery.near(new Point(coord.getLat(), coord.getLng()), Metrics.KILOMETERS).maxDistance(5)
+						.spherical(false), "distance"),
+				match(criteria), lookup("user_details", "editorId", "_id", "editors"),
+				lookup("channels", "channel", "_id", "channelData"), sort(Sort.Direction.DESC, "updateDate"));
+		
 		// Convert the aggregation result into a List
 		AggregationResults<NewsUserAgg> groupResults = mongoTemplate.aggregate(agg, PublishNews.class,
 				NewsUserAgg.class);
@@ -172,6 +195,21 @@ public class LocalNewsDao {
 
 	public void removeImage(String newsId) {
 		gridFS.remove(new ObjectId(newsId));
+	}
+
+	public NewsMediaAgg getNewsMedia(ObjectId newsId) {
+		Criteria criteria = Criteria.where("_id").is(newsId);
+
+		Aggregation agg = newAggregation(match(criteria), lookup("fs.files", "_id", "_id", "imageFiles"),
+				lookup("fs.chunks", "imageFiles._id", "files_id", "imageChunks"));
+
+		AggregationResults<NewsMediaAgg> groupResults = mongoTemplate.aggregate(agg, PublishNews.class,
+				NewsMediaAgg.class);
+		
+		List<NewsMediaAgg> result = groupResults.getMappedResults();
+		if (result != null && result.size() > 0)
+			return result.get(0);
+		return null;
 	}
 
 }

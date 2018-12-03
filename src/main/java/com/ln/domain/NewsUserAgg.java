@@ -3,9 +3,7 @@ package com.ln.domain;
 import java.util.Date;
 import java.util.List;
 
-import com.ln.entity.ImageChunk;
-import com.ln.entity.ImageFile;
-import com.ln.entity.Location;
+import com.ln.entity.Channel;
 import com.ln.entity.User;
 
 public class NewsUserAgg {
@@ -18,7 +16,7 @@ public class NewsUserAgg {
 
 	private String refLink;
 
-	private String[] location;
+	private Object[] location;
 
 	private String newsDate;
 
@@ -42,13 +40,17 @@ public class NewsUserAgg {
 
 	private List<User> editors;
 
-	private List<ImageFile> imageFiles;
+	private Channel channelData;
 
-	private List<ImageChunk> imageChunks;
+	private String language;
 
-	private List<Location> locationData;
+	private String channel;
+
+	private Object currentLocation;
 
 	private int myLike;
+	
+	private Object distance;
 
 	public String getId() {
 		return id;
@@ -82,11 +84,11 @@ public class NewsUserAgg {
 		this.refLink = refLink;
 	}
 
-	public String[] getLocation() {
+	public Object[] getLocation() {
 		return location;
 	}
 
-	public void setLocation(String[] location) {
+	public void setLocation(Object[] location) {
 		this.location = location;
 	}
 
@@ -186,28 +188,44 @@ public class NewsUserAgg {
 		this.myLike = myLike;
 	}
 
-	public List<ImageFile> getImageFiles() {
-		return imageFiles;
+	public Channel getChannelData() {
+		return channelData;
 	}
 
-	public void setImageFiles(List<ImageFile> imageFiles) {
-		this.imageFiles = imageFiles;
+	public void setChannelData(Channel channelData) {
+		this.channelData = channelData;
 	}
 
-	public List<ImageChunk> getImageChunks() {
-		return imageChunks;
+	public String getLanguage() {
+		return language;
 	}
 
-	public void setImageChunks(List<ImageChunk> imageChunks) {
-		this.imageChunks = imageChunks;
+	public void setLanguage(String language) {
+		this.language = language;
 	}
 
-	public List<Location> getLocationData() {
-		return locationData;
+	public String getChannel() {
+		return channel;
 	}
 
-	public void setLocationData(List<Location> locationData) {
-		this.locationData = locationData;
+	public void setChannel(String channel) {
+		this.channel = channel;
+	}
+
+	public Object getCurrentLocation() {
+		return currentLocation;
+	}
+
+	public void setCurrentLocation(Object currentLocation) {
+		this.currentLocation = currentLocation;
+	}
+
+	public Object getDistance() {
+		return distance;
+	}
+
+	public void setDistance(Object distance) {
+		this.distance = distance;
 	}
 
 }

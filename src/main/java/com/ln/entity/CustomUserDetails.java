@@ -19,16 +19,19 @@ public class CustomUserDetails extends User implements UserDetails {
 	@Override
 	public Collection<? extends GrantedAuthority> getAuthorities() {
 
-		List<SimpleGrantedAuthority> roles = new ArrayList<>();
-		roles.add(new SimpleGrantedAuthority("ROLE_USER"));
-		if (super.getApprover())
-			roles.add(new SimpleGrantedAuthority("ROLE_ADMIN"));
-		return roles;
+		List<SimpleGrantedAuthority> croles = new ArrayList<>();
+		croles.add(new SimpleGrantedAuthority("ROLE_USER"));
+		if (super.getRoles() != null && super.getRoles().size() > 0) {
+			super.getRoles().forEach(sr -> {
+				croles.add(new SimpleGrantedAuthority("ROLE_" + sr));
+			});
+		}
+		return croles;
 	}
 
 	@Override
 	public String getUsername() {
-		return super.getUserId();
+		return super.getId();
 	}
 
 	@Override
