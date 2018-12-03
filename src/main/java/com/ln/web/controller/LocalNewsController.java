@@ -158,17 +158,12 @@ public class LocalNewsController {
 	}
 
 	@RequestMapping(value = "/public/channel/{channelId}/news", method = RequestMethod.GET)
-	public Object getChannelPublicNews(@PathVariable String channelId, @RequestParam(required = false) String locations,
+	public Object getChannelPublicNews(@PathVariable String channelId,
 			@RequestParam(required = false) String languages) throws Exception {
 		List<String> lang = null;
 		if (StringUtils.isNotBlank(languages))
 			lang = Arrays.stream(languages.split(",")).collect(Collectors.toList());
-		Object[] locArray = null;
-		if (StringUtils.isNotBlank(locations)) {
-			ObjectMapper mapper = new ObjectMapper();
-			locArray = mapper.readValue(locations, Coordinates[].class);
-		}
-		List<PublicNews> list = localNewsService.getPublicNews(null, locArray, lang, channelId);
+		List<PublicNews> list = localNewsService.getPublicNews(null, null, lang, channelId);
 		if (list == null || list.size() == 0) {
 			return ResponseEntity.notFound().build();
 		}

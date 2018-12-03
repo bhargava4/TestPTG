@@ -7,7 +7,10 @@ import static org.springframework.data.mongodb.core.aggregation.Aggregation.newA
 import static org.springframework.data.mongodb.core.aggregation.Aggregation.sort;
 
 import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 
 import org.apache.commons.lang3.StringUtils;
 import org.bson.types.ObjectId;
@@ -75,7 +78,6 @@ public class LocalNewsDao {
 		Aggregation agg = newAggregation(match(Criteria.where("editorId").is(editorId)),
 				lookup("channels", "channel", "_id", "channelData"), sort(Sort.Direction.DESC, "updateDate"));
 
-		// Convert the aggregation result into a List
 		AggregationResults<NewsUserAgg> groupResults = mongoTemplate.aggregate(agg, DraftNews.class, NewsUserAgg.class);
 		List<NewsUserAgg> result = groupResults.getMappedResults();
 
@@ -134,7 +136,6 @@ public class LocalNewsDao {
 		Aggregation agg = newAggregation(match(criteria), lookup("user_details", "editorId", "_id", "editors"),
 				lookup("channels", "channel", "_id", "channelData"), sort(Sort.Direction.DESC, "updateDate"));
 
-		// Convert the aggregation result into a List
 		AggregationResults<NewsUserAgg> groupResults = mongoTemplate.aggregate(agg, PublishNews.class,
 				NewsUserAgg.class);
 		List<NewsUserAgg> result = groupResults.getMappedResults();
@@ -146,7 +147,6 @@ public class LocalNewsDao {
 		Aggregation agg = newAggregation(match(Criteria.where("editorId").is(editorId)),
 				lookup("channels", "channel", "_id", "channelData"), sort(Sort.Direction.DESC, "updateDate"));
 
-		// Convert the aggregation result into a List
 		AggregationResults<NewsUserAgg> groupResults = mongoTemplate.aggregate(agg, PublishNews.class,
 				NewsUserAgg.class);
 		List<NewsUserAgg> result = groupResults.getMappedResults();
@@ -154,37 +154,44 @@ public class LocalNewsDao {
 		return result;
 	}
 
-	public List<NewsUserAgg> getPublicNews(String newsId, Object[] locations, List<String> languages,
-			String channelId) {
+	public List<NewsUserAgg> getPublicNews(String newsId, List<String> languages, String channelId) {
 		Criteria criteria = Criteria.where("status").is("A");
 		if (StringUtils.isNotBlank(newsId))
 			criteria.and("id").is(new ObjectId(newsId));
 		if (StringUtils.isNotBlank(channelId))
 			criteria.and("channel").is(new ObjectId(channelId));
-		/*
-		 * if (locations != null && locations.length > 0) { List<NearQuery>
-		 * critLocList = new ArrayList<>(); for(int i=0;
-		 * i<locations.length;i++){ Coordinates coord =
-		 * (Coordinates)locations[i]; NearQuery nQuery = NearQuery.near(new
-		 * Point(coord.getLng(), coord.getLat()),
-		 * Metrics.KILOMETERS).maxDistance(5); critLocList.add(nQuery); }
-		 * criteria.and("location").elemMatch(new Criteria().in(critLocList)); }
-		 */
 		if (languages != null && languages.size() > 0)
 			criteria.and("language").in(languages);
-		Coordinates coord = (Coordinates) locations[0];
-		Aggregation agg = newAggregation(
-				geoNear(NearQuery.near(new Point(coord.getLat(), coord.getLng()), Metrics.KILOMETERS).maxDistance(5)
-						.spherical(false), "distance"),
-				match(criteria), lookup("user_details", "editorId", "_id", "editors"),
+
+		Aggregation agg = newAggregation(match(criteria), lookup("user_details", "editorId", "_id", "editors"),
 				lookup("channels", "channel", "_id", "channelData"), sort(Sort.Direction.DESC, "updateDate"));
-		
-		// Convert the aggregation result into a List
+
 		AggregationResults<NewsUserAgg> groupResults = mongoTemplate.aggregate(agg, PublishNews.class,
 				NewsUserAgg.class);
 		List<NewsUserAgg> result = groupResults.getMappedResults();
 
 		return result;
+	}
+
+	public List<NewsUserAgg> getPublicNewsByLoc(Object[] locations, List<String> languages) {
+
+		Set<NewsUserAgg> result = new LinkedHashSet<>();
+		for (int i = 0; i < locations.length; i++) {
+			Criteria criteria = Criteria.where("status").is("A");
+			if (languages != null && languages.size() > 0)
+				criteria.and("language").in(languages);
+			Coordinates coord = (Coordinates) locations[i];
+			Aggregation agg = newAggregation(
+					geoNear(NearQuery.near(new Point(coord.getLat(), coord.getLng()), Metrics.KILOMETERS).maxDistance(5)
+							.spherical(false), "distance"),
+					match(criteria), lookup("user_details", "editorId", "_id", "editors"),
+					lookup("channels", "channel", "_id", "channelData"), sort(Sort.Direction.DESC, "updateDate"));
+
+			AggregationResults<NewsUserAgg> groupResults = mongoTemplate.aggregate(agg, PublishNews.class,
+					NewsUserAgg.class);
+			result.addAll(groupResults.getMappedResults());
+		}
+		return new ArrayList<NewsUserAgg>(result);
 	}
 
 	public void saveImage(String newsId, InputStream newsImage) {
@@ -205,7 +212,7 @@ public class LocalNewsDao {
 
 		AggregationResults<NewsMediaAgg> groupResults = mongoTemplate.aggregate(agg, PublishNews.class,
 				NewsMediaAgg.class);
-		
+
 		List<NewsMediaAgg> result = groupResults.getMappedResults();
 		if (result != null && result.size() > 0)
 			return result.get(0);
