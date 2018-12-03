@@ -49,7 +49,7 @@ public class NewsUserAgg {
 	private Object currentLocation;
 
 	private int myLike;
-	
+
 	private Object distance;
 
 	public String getId() {
@@ -226,6 +226,26 @@ public class NewsUserAgg {
 
 	public void setDistance(Object distance) {
 		this.distance = distance;
+	}
+
+	@Override
+	public boolean equals(Object other) {
+		if ((this == other))
+			return true;
+		if ((other == null))
+			return false;
+		if (!(other instanceof NewsUserAgg))
+			return false;
+		NewsUserAgg castOther = (NewsUserAgg) other;
+		return ((this.getId() == castOther.getId())
+				|| (this.getId() != null && castOther.getId() != null && this.getId().equals(castOther.getId())));
+	}
+
+	@Override
+	public int hashCode() {
+		int result = 1;
+		result = 37 * result + (getId() == null ? 0 : this.getId().hashCode());
+		return result;
 	}
 
 }

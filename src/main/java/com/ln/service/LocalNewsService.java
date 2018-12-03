@@ -168,7 +168,11 @@ public class LocalNewsService {
 	}
 
 	public List<PublicNews> getPublicNews(String newsId, Object[] locations, List<String> languages, String channelId) {
-		List<NewsUserAgg> listDb = localNewsDao.getPublicNews(newsId, locations, languages, channelId);
+		List<NewsUserAgg> listDb = null;
+		if(locations == null || locations.length==0)
+			listDb = localNewsDao.getPublicNews(newsId, languages, channelId);
+		if(locations != null && locations.length>0)
+			listDb = localNewsDao.getPublicNewsByLoc(locations, languages);
 		List<PublicNews> list = new ArrayList<>();
 		if (listDb != null) {
 			listDb.parallelStream().forEach(nua -> {
