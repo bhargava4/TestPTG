@@ -2,8 +2,6 @@ package com.ln.dao;
 
 import java.util.Date;
 
-import javax.validation.Valid;
-
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
@@ -23,19 +21,20 @@ public class RegistrationDao {
 		mongoTemplate.save(user);
 	}
 
-	public User findUserById(String userId) {
+	public User findUserById(String loginId) {
 		Query query = new Query();
-		query.addCriteria(Criteria.where("userId").is(userId));
+		query.addCriteria((new Criteria()).orOperator(Criteria.where("phoneNum").is(loginId),
+				Criteria.where("emailId").is(loginId)));
 		return mongoTemplate.findOne(query, User.class);
 	}
 
-	public void updateRegTokenAndStatus(String userId, String token, boolean status) {
+	public void updateRegTokenAndStatus(String emailId, String token, boolean status) {
 		Query query = new Query();
-		query.addCriteria(Criteria.where("userId").is(userId));
+		query.addCriteria(Criteria.where("emailId").is(emailId));
 
 		Update update = new Update();
 		update.set("token", token);
-		update.set("authenticated", status);
+		update.set("emailAuthenticated", status);
 		update.set("updateDate", new Date());
 
 		mongoTemplate.updateFirst(query, update, User.class);
@@ -44,14 +43,6 @@ public class RegistrationDao {
 	public User getUserByToken(String token) {
 		Query query = new Query();
 		query.addCriteria(Criteria.where("token").is(token));
-		return mongoTemplate.findOne(query, User.class);
-	}
-
-	public @Valid User getUserByIdPwd(String userId, String password) {
-		Query query = new Query();
-		query.addCriteria(Criteria.where("userId").is(userId));
-		query.addCriteria(Criteria.where("password").is(password));
-		query.fields().include("userId").include("name").include("emailId").include("phoneNum").include("approver");
 		return mongoTemplate.findOne(query, User.class);
 	}
 

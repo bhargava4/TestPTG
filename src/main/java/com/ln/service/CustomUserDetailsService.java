@@ -19,8 +19,8 @@ public class CustomUserDetailsService implements UserDetailsService {
 	private RegistrationDao registrationDao;
 
 	@Override
-	public UserDetails loadUserByUsername(String userId) throws UsernameNotFoundException {
-		User user = registrationDao.findUserById(userId);
+	public UserDetails loadUserByUsername(String loginId) throws UsernameNotFoundException {
+		User user = registrationDao.findUserById(loginId);
 		Optional.ofNullable(user).orElseThrow(() -> new UsernameNotFoundException("User does not exist"));
 		return new CustomUserDetails(user);
 	}

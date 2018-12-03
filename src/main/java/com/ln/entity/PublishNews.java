@@ -18,15 +18,15 @@ public class PublishNews {
 
 	private String refLink;
 
-	private ObjectId[] location;
+	private Object[] location;
 
 	private String newsDate;
 
-	private String editorId;
+	private ObjectId editorId;
 
 	private Date publishDate = new Date();
 
-	private String reviewerId;
+	private ObjectId reviewerId;
 
 	private Date reviewDate;
 
@@ -35,6 +35,12 @@ public class PublishNews {
 	private Date createDate = new Date();
 
 	private Date updateDate = new Date();
+
+	private String language;
+
+	private Object currentLocation;
+
+	private ObjectId channel;
 
 	public String getId() {
 		return id;
@@ -68,11 +74,11 @@ public class PublishNews {
 		this.refLink = refLink;
 	}
 
-	public ObjectId[] getLocation() {
+	public Object[] getLocation() {
 		return location;
 	}
 
-	public void setLocation(ObjectId[] location) {
+	public void setLocation(Object[] location) {
 		this.location = location;
 	}
 
@@ -84,11 +90,11 @@ public class PublishNews {
 		this.newsDate = newsDate;
 	}
 
-	public String getEditorId() {
+	public ObjectId getEditorId() {
 		return editorId;
 	}
 
-	public void setEditorId(String editorId) {
+	public void setEditorId(ObjectId editorId) {
 		this.editorId = editorId;
 	}
 
@@ -100,11 +106,11 @@ public class PublishNews {
 		this.publishDate = publishDate;
 	}
 
-	public String getReviewerId() {
+	public ObjectId getReviewerId() {
 		return reviewerId;
 	}
 
-	public void setReviewerId(String reviewerId) {
+	public void setReviewerId(ObjectId reviewerId) {
 		this.reviewerId = reviewerId;
 	}
 
@@ -138,6 +144,30 @@ public class PublishNews {
 
 	public void setUpdateDate(Date updateDate) {
 		this.updateDate = updateDate;
+	}
+
+	public String getLanguage() {
+		return language;
+	}
+
+	public void setLanguage(String language) {
+		this.language = language;
+	}
+
+	public Object getCurrentLocation() {
+		return currentLocation;
+	}
+
+	public void setCurrentLocation(Object currentLocation) {
+		this.currentLocation = currentLocation;
+	}
+
+	public ObjectId getChannel() {
+		return channel;
+	}
+
+	public void setChannel(ObjectId channel) {
+		this.channel = channel;
 	}
 
 }

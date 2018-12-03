@@ -1,6 +1,7 @@
 package com.ln.entity;
 
 import java.util.Date;
+import java.util.List;
 
 import javax.validation.constraints.Email;
 import javax.validation.constraints.NotBlank;
@@ -15,9 +16,6 @@ public class User {
 	@Id
 	private String id;
 
-	@NotBlank(message = "{userid.notblank}")
-	private String userId;
-
 	@NotBlank
 	private String name;
 
@@ -31,9 +29,7 @@ public class User {
 	@NotBlank
 	private String password;
 
-	private boolean authenticated = false;
-
-	private boolean approver = false;
+	private Boolean emailAuthenticated;
 
 	private Date createDate = new Date();
 
@@ -41,22 +37,23 @@ public class User {
 
 	private String token;
 
+	private List<String> roles;
+
 	public User() {
 		super();
 	}
-	
+
 	public User(User user) {
 		this.id = user.getId();
-		this.userId = user.getUserId();
 		this.name = user.getName();
 		this.emailId = user.getEmailId();
 		this.phoneNum = user.getPhoneNum();
 		this.password = user.getPassword();
-		this.authenticated = user.getAuthenticated();
-		this.approver = user.getApprover();
+		this.emailAuthenticated = user.getEmailAuthenticated();
 		this.createDate = user.getCreateDate();
 		this.updateDate = user.getUpdateDate();
 		this.token = user.getToken();
+		this.roles = user.getRoles();
 	}
 
 	public String getId() {
@@ -65,14 +62,6 @@ public class User {
 
 	public void setId(String id) {
 		this.id = id;
-	}
-
-	public String getUserId() {
-		return userId;
-	}
-
-	public void setUserId(String userId) {
-		this.userId = userId;
 	}
 
 	public String getName() {
@@ -107,22 +96,6 @@ public class User {
 		this.password = password;
 	}
 
-	public boolean getAuthenticated() {
-		return authenticated;
-	}
-
-	public void setAuthenticated(boolean authenticated) {
-		this.authenticated = authenticated;
-	}
-
-	public boolean getApprover() {
-		return approver;
-	}
-
-	public void setApprover(boolean approver) {
-		this.approver = approver;
-	}
-
 	public Date getCreateDate() {
 		return createDate;
 	}
@@ -145,6 +118,22 @@ public class User {
 
 	public void setToken(String token) {
 		this.token = token;
+	}
+
+	public Boolean getEmailAuthenticated() {
+		return emailAuthenticated;
+	}
+
+	public void setEmailAuthenticated(Boolean emailAuthenticated) {
+		this.emailAuthenticated = emailAuthenticated;
+	}
+
+	public List<String> getRoles() {
+		return roles;
+	}
+
+	public void setRoles(List<String> roles) {
+		this.roles = roles;
 	}
 
 }

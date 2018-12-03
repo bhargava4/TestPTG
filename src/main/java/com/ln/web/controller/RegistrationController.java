@@ -1,8 +1,5 @@
 package com.ln.web.controller;
 
-import java.security.Principal;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.UUID;
 
 import javax.servlet.http.HttpServletRequest;
@@ -10,6 +7,7 @@ import javax.validation.Valid;
 
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
@@ -20,8 +18,8 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.ln.domain.LoginUser;
 import com.ln.domain.RegistrationUser;
+import com.ln.domain.ReturnResponse;
 import com.ln.entity.User;
 import com.ln.service.RecaptchaService;
 import com.ln.service.RegistrationService;
@@ -39,15 +37,17 @@ public class RegistrationController {
 	private JavaMailSender mailSender;
 
 	@RequestMapping(value = "/validate-user", method = RequestMethod.GET)
-	public ResponseEntity registrationStatus(@RequestParam(required = false) String userId,
-			@RequestParam(required = false) String emailId, @RequestParam(required = false) String phoneNum) {
+	public Object registrationStatus(@RequestParam(required = false) String emailId,
+			@RequestParam(required = false) String phoneNum) {
+		StringBuffer errorMsg = verifyUser(emailId, phoneNum);
+		if (StringUtils.isBlank(errorMsg))
+			return ReturnResponse.getHttpStatusResponse("Id does not exist", HttpStatus.OK, null);
+		return ResponseEntity.badRequest().body(errorMsg.toString());
+	}
+
+	private StringBuffer verifyUser(String emailId, String phoneNum) {
 		StringBuffer errorMsg = new StringBuffer();
 		User user = null;
-		if (StringUtils.isNotBlank(userId)) {
-			user = registrationService.findUserById(userId);
-			if (user != null)
-				errorMsg.append("UserId already exists.");
-		}
 		if (StringUtils.isNotBlank(emailId)) {
 			user = registrationService.findUserByEmailId(emailId);
 			if (user != null)
@@ -58,33 +58,27 @@ public class RegistrationController {
 			if (user != null)
 				errorMsg.append("Phone number already exists.");
 		}
-		if (StringUtils.isBlank(errorMsg))
-			return ResponseEntity.ok().build();
-		return ResponseEntity.badRequest().body(errorMsg);
+		return errorMsg;
 	}
 
 	@RequestMapping(value = "/signup", method = RequestMethod.POST, consumes = "application/json")
-	public ResponseEntity registerUser(@Valid @RequestBody RegistrationUser lUser, HttpServletRequest request) {
+	public Object registerUser(@Valid @RequestBody RegistrationUser lUser, HttpServletRequest request) {
 
 		// Verify recaptcha
 		String captchaVerifyMessage = recaptchaService.verifyRecaptcha(request.getRemoteAddr(),
 				lUser.getRecaptchaResp());
 		if (StringUtils.isNotEmpty(captchaVerifyMessage)) {
-			Map<String, Object> response = new HashMap<>();
-			response.put("error", "Captcha error");
-			response.put("message", captchaVerifyMessage);
-			return ResponseEntity.badRequest().body(response);
+			return ResponseEntity.badRequest().body(captchaVerifyMessage);
 		}
 		// Verify recaptcha done
 
-		// varify user exists with userid
-		User dbUser = registrationService.findUserById(lUser.getUserId());
-		if (dbUser != null)
-			return ResponseEntity.badRequest().body("UserId already exists");
+		// varify user exists with phone and email
+		StringBuffer errorMsg = verifyUser(lUser.getEmailId(), lUser.getPhoneNum());
+		if (StringUtils.isNotBlank(errorMsg))
+			return ResponseEntity.badRequest().body(errorMsg.toString());
 
 		// Map User object
 		User user = new User();
-		user.setUserId(lUser.getUserId());
 		user.setEmailId(lUser.getEmailId());
 		user.setPassword(DigestUtils.md5DigestAsHex(lUser.getPassword().getBytes()));
 		user.setPhoneNum(lUser.getPhoneNum());
@@ -94,14 +88,15 @@ public class RegistrationController {
 		registrationService.createUser(user);
 
 		// confirmation email logic
-		// publishVerificationEmail(user, request.getContextPath());
+		if (StringUtils.isNotBlank(user.getEmailId()))
+			publishVerificationEmail(user, request.getContextPath());
 
-		return ResponseEntity.ok("User registered successfully.");
+		return ReturnResponse.getHttpStatusResponse("User registered successfully", HttpStatus.OK, null);
 	}
 
 	private void publishVerificationEmail(User user, String url) {
 		String token = UUID.randomUUID().toString();
-		registrationService.updateRegTokenAndStatus(user.getUserId(), token, false);
+		registrationService.updateRegTokenAndStatus(user.getEmailId(), token, false);
 
 		String confirmationUrl = url + "/verify-registration?token=" + token;
 
@@ -116,26 +111,12 @@ public class RegistrationController {
 	}
 
 	@RequestMapping(value = "/verify-registration", method = RequestMethod.GET)
-	public ResponseEntity verifyRegistration(@RequestParam String token) throws Exception {
-
+	public Object verifyRegistration(@RequestParam String token) throws Exception {
 		User user = registrationService.getUserByToken(token);
 		if (user == null)
 			return ResponseEntity.badRequest().body("User does not exist or user already verfied");
-
-		registrationService.updateRegTokenAndStatus(user.getUserId(), null, true);
-
-		return ResponseEntity.ok("User verified successfully");
+		registrationService.updateRegTokenAndStatus(user.getEmailId(), null, true);
+		return ReturnResponse.getHttpStatusResponse("User verified successfully", HttpStatus.OK, null);
 	}
-
-	/*@RequestMapping(value = "/login", method = RequestMethod.POST)
-	public ResponseEntity verifyLoginUser(@Valid @RequestBody LoginUser user) throws Exception {
-
-		user = registrationService.getUserByIdPwd(user.getUserId(),
-				DigestUtils.md5DigestAsHex(user.getPassword().getBytes()));
-		if (user == null)
-			return ResponseEntity.badRequest().body("Invalid UserId or Password");
-
-		return ResponseEntity.ok(user);
-	}*/
 
 }

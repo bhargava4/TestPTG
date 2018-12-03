@@ -1,13 +1,12 @@
 package com.ln.domain;
 
-import java.util.List;
-
 import javax.validation.constraints.NotBlank;
+import javax.validation.constraints.Size;
 
 import org.hibernate.validator.constraints.URL;
 
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
-import com.ln.entity.Location;
+import com.ln.entity.Channel;
 
 @JsonAutoDetect
 public class PostNews {
@@ -23,7 +22,8 @@ public class PostNews {
 	@URL
 	private String refLink;
 
-	private String[] location;
+	@Size(max = 5, min = 1)
+	private Object[] location;
 
 	@NotBlank
 	private String newsDate;
@@ -31,7 +31,15 @@ public class PostNews {
 	@NotBlank
 	private String editorId;
 
-	private List<Location> locationData;
+	private Channel channelData;
+
+	private Object currentLocation;
+
+	@NotBlank
+	private String language;
+
+	@NotBlank
+	private String channel;
 
 	public String getId() {
 		return id;
@@ -65,11 +73,11 @@ public class PostNews {
 		this.refLink = refLink;
 	}
 
-	public String[] getLocation() {
+	public Object[] getLocation() {
 		return location;
 	}
 
-	public void setLocation(String[] location) {
+	public void setLocation(Object[] location) {
 		this.location = location;
 	}
 
@@ -89,12 +97,36 @@ public class PostNews {
 		this.editorId = editorId;
 	}
 
-	public List<Location> getLocationData() {
-		return locationData;
+	public Object getCurrentLocation() {
+		return currentLocation;
 	}
 
-	public void setLocationData(List<Location> locationData) {
-		this.locationData = locationData;
+	public void setCurrentLocation(Object currentLocation) {
+		this.currentLocation = currentLocation;
+	}
+
+	public String getLanguage() {
+		return language;
+	}
+
+	public void setLanguage(String language) {
+		this.language = language;
+	}
+
+	public String getChannel() {
+		return channel;
+	}
+
+	public void setChannel(String channel) {
+		this.channel = channel;
+	}
+
+	public Channel getChannelData() {
+		return channelData;
+	}
+
+	public void setChannelData(Channel channelData) {
+		this.channelData = channelData;
 	}
 
 }

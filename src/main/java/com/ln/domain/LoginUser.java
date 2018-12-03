@@ -1,15 +1,13 @@
 package com.ln.domain;
 
-import javax.validation.constraints.NotBlank;
+import java.util.ArrayList;
+import java.util.List;
 
 import com.fasterxml.jackson.annotation.JsonAutoDetect;
-import com.fasterxml.jackson.annotation.JsonInclude;
-import com.fasterxml.jackson.annotation.JsonInclude.Include;
 
 @JsonAutoDetect
 public class LoginUser {
 
-	@NotBlank(message = "{userid.notblank}")
 	private String userId;
 
 	private String name;
@@ -18,21 +16,9 @@ public class LoginUser {
 
 	private String phoneNum;
 
-	@NotBlank
-	@JsonInclude(value = Include.NON_NULL)
-	private String password;
+	private Boolean emailAuthenticated;
 
-	private boolean authenticated = false;
-
-	private boolean approver = false;
-
-	public String getUserId() {
-		return userId;
-	}
-
-	public void setUserId(String userId) {
-		this.userId = userId;
-	}
+	private List<String> roles = new ArrayList<>();
 
 	public String getName() {
 		return name;
@@ -58,28 +44,28 @@ public class LoginUser {
 		this.phoneNum = phoneNum;
 	}
 
-	public String getPassword() {
-		return password;
+	public List<String> getRoles() {
+		return roles;
 	}
 
-	public void setPassword(String password) {
-		this.password = password;
+	public void setRoles(List<String> roles) {
+		this.roles = roles;
 	}
 
-	public boolean isAuthenticated() {
-		return authenticated;
+	public Boolean getEmailAuthenticated() {
+		return emailAuthenticated;
 	}
 
-	public void setAuthenticated(boolean authenticated) {
-		this.authenticated = authenticated;
+	public void setEmailAuthenticated(Boolean emailAuthenticated) {
+		this.emailAuthenticated = emailAuthenticated;
 	}
 
-	public boolean isApprover() {
-		return approver;
+	public String getUserId() {
+		return userId;
 	}
 
-	public void setApprover(boolean approver) {
-		this.approver = approver;
+	public void setUserId(String userId) {
+		this.userId = userId;
 	}
 
 }

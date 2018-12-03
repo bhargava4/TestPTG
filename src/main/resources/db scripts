@@ -1,4 +1,3 @@
  >use ln_db
- >db.createCollection("states")
- >db.states.insert({state:"TS",desc:"Telangana"})
- >db.states.insert({state:"AP",desc:"Andhra Pradesh"})
+ >db.user_details.update({phoneNum:""},{$set:{roles:["ADMIN"]}})
+ >db.publish_news.createIndex( { "location": "2d" } )
